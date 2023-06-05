@@ -11,7 +11,7 @@ An example of a custom Kubernetes controller that's only purpose is to watch for
 Clone repo:
 
 ```
-$ git clone https://github.com/resouer/k8s-controller-custom-resource
+$ git clone https://github.com/ZhuoZhuoCrayon/k8s-controller-custom-resource
 $ cd k8s-controller-custom-resource
 ```
 

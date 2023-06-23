@@ -34,7 +34,10 @@ func SetupSignalHandler() (stopCh <-chan struct{}) {
 	signal.Notify(c, shutdownSignals...)
 	go func() {
 		<-c
+		// 在接收到第一个信号后，关闭 stop 通道，表示程序应该开始进行优雅地关闭（例如，等待正在进行的工作完成，清理资源等）
 		close(stop)
+		// 在接收到第二个信号后，调用 os.Exit(1) 直接终止程序，而不进行任何优雅地关闭。
+		//这种情况通常发生在用户希望立即停止程序时（例如，连续发送两次信号）
 		<-c
 		os.Exit(1) // second signal. Exit directly.
 	}()

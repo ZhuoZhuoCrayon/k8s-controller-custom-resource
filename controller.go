@@ -106,7 +106,9 @@ func NewController(
 // is closed, at which point it will shutdown the workqueue and wait for
 // workers to finish processing their current work items.
 func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
+	// 在函数执行完成或出现异常时处理异常情况
 	defer runtime.HandleCrash()
+	// 在函数执行完成时关闭 workqueue，以确保所有的项目得到适当处理
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
@@ -114,6 +116,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 
 	// Wait for the caches to be synced before starting workers
 	glog.Info("Waiting for informer caches to sync")
+	// 等待 Informer 缓存同步
 	if ok := cache.WaitForCacheSync(stopCh, c.networksSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
@@ -125,6 +128,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	}
 
 	glog.Info("Started workers")
+	// 当 stopCh 被关闭时，<-stopCh 表达式将解除阻塞，控制器将开始关闭过程
 	<-stopCh
 	glog.Info("Shutting down workers")
 
@@ -248,6 +252,7 @@ func (c *Controller) syncHandler(key string) error {
 func (c *Controller) enqueueNetwork(obj interface{}) {
 	var key string
 	var err error
+	// 用于生成 Kubernetes 资源标识符的辅助函数（NAMESPACE/NAME）
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
 		runtime.HandleError(err)
 		return
@@ -261,10 +266,14 @@ func (c *Controller) enqueueNetwork(obj interface{}) {
 func (c *Controller) enqueueNetworkForDelete(obj interface{}) {
 	var key string
 	var err error
+	// 如果对象已被删除，DeletionHandlingMetaNamespaceKeyFunc 将从对象包含的 "Last Known State" 中提取命名空间和名称，并生成唯一标识符。
+	// 如果对象未删除，同 enqueueNetwork
 	key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 	if err != nil {
 		runtime.HandleError(err)
 		return
 	}
+	// 资源标识符可以用来在队列中高效地处理很多对象，而无需将整个对象复制到队列。
+	// 在处理队列时，工作线程将从队列中获取资源标识符，然后根据需要从本地缓存（cache，由 Informer 维护）中检索资源对象。
 	c.workqueue.AddRateLimited(key)
 }
